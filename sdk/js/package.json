@@ -1,0 +1,16 @@
+{
+  "name": "pub-ia-sdk",
+  "version": "0.1.0",
+  "description": "Pub-IA SDK for integrating ad monetization into AI chat applications",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "prepublishOnly": "npm run build"
+  },
+  "keywords": ["pub-ia", "advertising", "ai", "chatbot", "sdk"],
+  "license": "MIT",
+  "devDependencies": {
+    "typescript": "^5.0.0"
+  }
+}

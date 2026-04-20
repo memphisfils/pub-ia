@@ -1,0 +1,99 @@
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    env_file:
+      - .env
+    environment:
+      PUBIA_ENV: ${PUBIA_ENV:-development}
+      PUBIA_DEBUG: ${PUBIA_DEBUG:-0}
+      SECRET_KEY: ${SECRET_KEY:-dev-secret-change-me}
+      DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-pubia}:${POSTGRES_PASSWORD:-pubia}@db:5432/${POSTGRES_DB:-pubia}
+      REDIS_URL: redis://redis:6379/0
+    volumes:
+      - ./backend:/app/backend:rw
+    expose:
+      - "8000"
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  frontend:
+    build:
+      context: ./frontend
+    env_file:
+      - .env
+    volumes:
+      - ./frontend:/app:rw
+      - /app/node_modules
+    expose:
+      - "5173"
+    depends_on:
+      - backend
+    command: npm run dev -- --host
+
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-pubia}
+      POSTGRES_USER: ${POSTGRES_USER:-pubia}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-pubia}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - pg_isready -U ${POSTGRES_USER:-pubia} -d ${POSTGRES_DB:-pubia}
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+
+  redis:
+    image: redis:7-alpine
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redis_data:/data
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    healthcheck:
+      test:
+        - CMD
+        - redis-cli
+        - ping
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 5s
+
+  caddy:
+    image: caddy:2-alpine
+    depends_on:
+      backend:
+        condition: service_healthy
+    ports:
+      - "${CADDY_PORT:-8080}:80"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+
+  demo-chatbot:
+    image: nginx:alpine
+    ports:
+      - "${DEMO_PORT:-3000}:80"
+    volumes:
+      - ./demo-chatbot:/usr/share/nginx/html:ro
+    depends_on:
+      - backend
+
+volumes:
+  postgres_data:
+  redis_data:
+  caddy_data:
+  caddy_config:

@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pub-IA Demo Chatbot</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="chat-container">
+        <!-- Header -->
+        <div class="chat-header">
+            <div class="header-left">
+                <div class="bot-avatar">🤖</div>
+                <div>
+                    <h1>ShopBot IA</h1>
+                    <span class="status">En ligne</span>
+                </div>
+            </div>
+            <div class="header-right">
+                <span class="badge">Démo Pub-IA</span>
+            </div>
+        </div>
+
+        <!-- Messages Area -->
+        <div class="chat-messages" id="chatMessages">
+            <!-- Welcome Message -->
+            <div class="message bot">
+                <div class="message-content">
+                    <p>👋 Bonjour ! Je suis <strong>ShopBot</strong>, votre assistant shopping IA.</p>
+                    <p>Je peux vous aider à trouver des produits. Essayez de me demander :</p>
+                    <ul>
+                        <li><em>"Quel laptop acheter pour travailler ?"</em></li>
+                        <li><em>"Quelle crème anti-âge tu recommandes ?"</em></li>
+                        <li><em>"Je cherche des sneakers de running"</em></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- Input Area -->
+        <div class="chat-input">
+            <input 
+                type="text" 
+                id="messageInput" 
+                placeholder="Posez votre question..."
+                autocomplete="off"
+            >
+            <button id="sendBtn" class="send-btn">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="22" y1="2" x2="11" y2="13"></line>
+                    <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                </svg>
+            </button>
+        </div>
+
+        <!-- Footer -->
+        <div class="chat-footer">
+            <span>Propulsé par <strong>Pub-IA</strong> · <a href="https://pub-ia.io" target="_blank">Intégrer dans votre app</a></span>
+        </div>
+    </div>
+
+    <!-- SDK Pub-IA (en dev, on charge depuis le backend local) -->
+    <script type="module">
+        // Configuration du SDK
+        const API_ENDPOINT = 'http://localhost:8000/v1';
+        const API_KEY = 'pk_live_demo_key'; // Clé de démo - remplacer par votre clé
+
+        // État du chatbot
+        let conversationHistory = [];
+
+        // Éléments DOM
+        const chatMessages = document.getElementById('chatMessages');
+        const messageInput = document.getElementById('messageInput');
+        const sendBtn = document.getElementById('sendBtn');
+
+        // Fonction pour ajouter un message
+        function addMessage(content, type = 'user') {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${type}`;
+            
+            const contentDiv = document.createElement('div');
+            contentDiv.className = 'message-content';
+            contentDiv.innerHTML = content;
+            
+            messageDiv.appendChild(contentDiv);
+            chatMessages.appendChild(messageDiv);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        // Fonction pour ajouter une annonce native
+        function addNativeAd(ad) {
+            const adDiv = document.createElement('div');
+            adDiv.className = 'message ad';
+            
+            const contentDiv = document.createElement('div');
+            contentDiv.className = 'message-content ad-content';
+            contentDiv.innerHTML = `
+                <div class="ad-label">💡 Sponsorisé</div>
+                <p><strong>${ad.headline}</strong></p>
+                <p>${ad.body}</p>
+                <a href="${ad.cta_url}" target="_blank" class="ad-cta" onclick="trackClick('${ad.impression_id}')">
+                    ${ad.cta_text} →
+                </a>
+            `;
+            
+            adDiv.appendChild(contentDiv);
+            chatMessages.appendChild(adDiv);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        // Fonction pour tracker un clic
+        async function trackClick(impressionId) {
+            try {
+                await fetch(`${API_ENDPOINT}/track-click`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${API_KEY}`
+                    },
+                    body: JSON.stringify({ impression_id: impressionId })
+                });
+            } catch (error) {
+                console.error('Error tracking click:', error);
+            }
+        }
+
+        // Fonction pour analyser l'intention
+        async function analyzeIntent(prompt) {
+            try {
+                const response = await fetch(`${API_ENDPOINT}/analyze-intent`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${API_KEY}`
+                    },
+                    body: JSON.stringify({ 
+                        prompt,
+                        context: conversationHistory.slice(-3).join('\n')
+                    })
+                });
+
+                if (!response.ok) {
+                    console.error('Intent analysis failed:', response.status);
+                    return null;
+                }
+
+                return await response.json();
+            } catch (error) {
+                console.error('Error analyzing intent:', error);
+                return null;
+            }
+        }
+
+        // Fonction pour récupérer une annonce
+        async function getAd(intentResult) {
+            try {
+                const response = await fetch(`${API_ENDPOINT}/get-ad`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${API_KEY}`
+                    },
+                    body: JSON.stringify({
+                        intent: intentResult.intent,
+                        intent_id: intentResult.intent_id,
+                        confidence: intentResult.confidence
+                    })
+                });
+
+                if (response.status === 204) {
+                    return null; // Pas d'annonce disponible
+                }
+
+                if (!response.ok) {
+                    console.error('Get ad failed:', response.status);
+                    return null;
+                }
+
+                return await response.json();
+            } catch (error) {
+                console.error('Error getting ad:', error);
+                return null;
+            }
+        }
+
+        // Fonction pour générer une réponse du bot (simulée)
+        function generateBotResponse(prompt) {
+            // Dans une vraie app, on appellerait une API LLM (OpenAI, etc.)
+            // Ici, on simule des réponses basiques
+            const responses = [
+                "C'est une excellente question ! Laissez-moi vous conseiller...",
+                "Je comprends votre besoin. Voici ce que je recommande :",
+                "Plusieurs options s'offrent à vous. Laissez-moi vous guider :",
+                "Bon choix de demander ! Voici mes recommandations :"
+            ];
+            
+            return responses[Math.floor(Math.random() * responses.length)];
+        }
+
+        // Fonction principale d'envoi de message
+        async function sendMessage() {
+            const prompt = messageInput.value.trim();
+            if (!prompt) return;
+
+            // Ajouter le message utilisateur
+            addMessage(`<p>${prompt}</p>`, 'user');
+            messageInput.value = '';
+            conversationHistory.push(prompt);
+
+            // Analyser l'intention
+            const intent = await analyzeIntent(prompt);
+            
+            // Générer réponse du bot
+            const botResponse = generateBotResponse(prompt);
+            addMessage(`<p>${botResponse}</p>`, 'bot');
+            conversationHistory.push(botResponse);
+
+            // Si intention détectée, récupérer et afficher une annonce
+            if (intent && intent.has_intent) {
+                console.log('Intent detected:', intent);
+                const ad = await getAd(intent);
+                
+                if (ad) {
+                    addNativeAd(ad);
+                    console.log('Ad displayed:', ad);
+                } else {
+                    console.log('No ad available for this intent');
+                }
+            } else {
+                console.log('No purchase intent detected');
+            }
+        }
+
+        // Event listeners
+        sendBtn.addEventListener('click', sendMessage);
+        messageInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                sendMessage();
+            }
+        });
+
+        // Focus sur l'input au chargement
+        messageInput.focus();
+    </script>
+</body>
+</html>
