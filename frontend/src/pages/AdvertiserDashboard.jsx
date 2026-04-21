@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import Sidebar from '../components/Sidebar.jsx';
 import KpiCard from '../components/KpiCard.jsx';
 import StatusPill from '../components/StatusPill.jsx';
+import { getCategoryLabel } from '../lib/categories.js';
 import api from '../services/api.js';
 
 export default function AdvertiserDashboard() {
@@ -40,7 +41,7 @@ export default function AdvertiserDashboard() {
                     <td style={{ padding: '16px 0' }}>
                       <Link to={`/advertiser/campaigns/${c.id}/edit`} style={{ fontWeight: 500 }}>{c.name}</Link>
                     </td>
-                    <td style={{ padding: '16px 0', color: 'var(--text-secondary)' }}>{c.category}</td>
+                    <td style={{ padding: '16px 0', color: 'var(--text-secondary)' }}>{getCategoryLabel(c.category)}</td>
                     <td style={{ padding: '16px 0' }}><StatusPill status={c.status} /></td>
                     <td style={{ padding: '16px 0', textAlign: 'right' }}>{c.budget_spent} € / {c.budget_total} €</td>
                   </tr>

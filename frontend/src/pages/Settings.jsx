@@ -1,11 +1,13 @@
 import React from 'react';
-import api from '../services/api.js';
 
 export default function Settings() {
   const [user, setUser] = React.useState(null);
 
   React.useEffect(() => {
-    api.get('/auth/me').then(r => setUser(r.data)).catch(() => {});
+    fetch('/auth/me', { credentials: 'include' })
+      .then((response) => (response.ok ? response.json() : null))
+      .then((data) => setUser(data))
+      .catch(() => {});
   }, []);
 
   if (!user) return <div style={{ padding: '40px', textAlign: 'center' }}>Chargement...</div>;

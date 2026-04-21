@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from flask import Blueprint, current_app, jsonify, redirect, request, url_for
+from flask import Blueprint, Flask, current_app, jsonify, redirect
 from authlib.integrations.flask_client import OAuth
 
 auth = Blueprint("auth", __name__, url_prefix="/auth")
@@ -10,30 +10,48 @@ auth = Blueprint("auth", __name__, url_prefix="/auth")
 oauth = OAuth()
 
 
-def _get_google_auth() -> OAuth:
-    """Initialize Google OAuth."""
+def init_auth(app: Flask) -> None:
+    oauth.init_app(app)
+
+
+def _get_google_client():
     config = current_app.config
+    if not config.get("GOOGLE_CLIENT_ID") or not config.get("GOOGLE_CLIENT_SECRET"):
+        return None
+
+    client = oauth.create_client("google")
+    if client is not None:
+        return client
+
     oauth.register(
         name="google",
-        client_id=config.get("GOOGLE_CLIENT_ID"),
-        client_secret=config.get("GOOGLE_CLIENT_SECRET"),
+        client_id=config["GOOGLE_CLIENT_ID"],
+        client_secret=config["GOOGLE_CLIENT_SECRET"],
         server_metadata_url="https://accounts.google.com/.well-known/openid-configuration",
         client_kwargs={"scope": "openid email profile"},
     )
-    return oauth
+    return oauth.create_client("google")
 
 
 @auth.route("/google")
 def google_login() -> Any:
     """Redirect to Google OAuth2."""
+    client = _get_google_client()
+    if client is None:
+        return jsonify({"error": "Google OAuth is not configured"}), 503
+
     redirect_uri = current_app.config.get("GOOGLE_REDIRECT_URI")
-    return oauth.create_client("google").authorize_redirect(redirect_uri)
+    return client.authorize_redirect(redirect_uri)
 
 
 @auth.route("/google/callback")
 def google_callback() -> Any:
     """Handle Google OAuth2 callback."""
-    token = oauth.create_client("google").authorize_access_token()
+    client = _get_google_client()
+    if client is None:
+        return jsonify({"error": "Google OAuth is not configured"}), 503
+
+    token = client.authorize_access_token()
     user_info = token.get("userinfo")
     if not user_info:
         return jsonify({"error": "Failed to get user info from Google"}), 400

@@ -2,6 +2,7 @@ import React from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import Sidebar from '../components/Sidebar.jsx';
 import AdPreview from '../components/AdPreview.jsx';
+import { getCategoryLabel } from '../lib/categories.js';
 import api from '../services/api.js';
 
 export default function CampaignEdit() {
@@ -54,7 +55,7 @@ export default function CampaignEdit() {
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px' }}>
           <div>
             <h1 style={{ fontSize: '24px', fontWeight: 700 }}>{campaign.name}</h1>
-            <span style={{ color: 'var(--text-secondary)' }}>{campaign.category}</span>
+            <span style={{ color: 'var(--text-secondary)' }}>{getCategoryLabel(campaign.category)}</span>
           </div>
           <div style={{ display: 'flex', gap: '12px' }}>
             {campaign.status === 'active'

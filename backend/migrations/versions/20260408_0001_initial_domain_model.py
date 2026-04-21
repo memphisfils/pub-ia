@@ -73,7 +73,7 @@ def upgrade() -> None:
         sa.Column("name", sa.String(length=255), nullable=False),
         sa.Column("status", sa.String(length=50), nullable=False, server_default="draft"),
         sa.Column("category", sa.String(length=100), nullable=False),
-        sa.Column("intent_keywords", sa.Text(), nullable=True),  # PostgreSQL TEXT[] handled separately
+        sa.Column("intent_keywords", sa.JSON(), nullable=True),
         sa.Column("budget_total", sa.Numeric(precision=10, scale=2), nullable=False, server_default="0"),
         sa.Column("budget_spent", sa.Numeric(precision=10, scale=2), nullable=False, server_default="0"),
         sa.Column("bid_cpm", sa.Numeric(precision=8, scale=2), nullable=True),

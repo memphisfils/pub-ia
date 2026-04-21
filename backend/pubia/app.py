@@ -3,17 +3,12 @@ from __future__ import annotations
 from collections.abc import Mapping
 from typing import Any
 
-from flask import Flask
+from flask import Flask, request
 
 from pubia.config import DEFAULT_SECRET_KEY, build_config
+from pubia.routes.auth import init_auth
 from pubia.routes import register_routes
-from pubia.services import (
-    DatabaseClient,
-    RedisClient,
-    IntentClassifier,
-    AdSelector,
-    RateLimiter,
-)
+from pubia.services import DatabaseClient, RedisClient
 
 
 def create_app(
@@ -27,7 +22,9 @@ def create_app(
         app.config.from_mapping(config_overrides)
 
     _validate_runtime_config(app)
+    _configure_cors(app)
     _register_services(app, service_overrides)
+    init_auth(app)
     register_routes(app)
     return app
 
@@ -65,3 +62,32 @@ def _register_services(
         "redis",
         RedisClient(app.config.get("REDIS_URL")),
     )
+
+
+def _configure_cors(app: Flask) -> None:
+    configured_origin = app.config.get("FRONTEND_URL")
+    allowed_origins = {
+        "http://localhost:3000",
+        "http://127.0.0.1:3000",
+        "http://localhost:5173",
+        "http://127.0.0.1:5173",
+        "http://localhost:8080",
+        "http://127.0.0.1:8080",
+    }
+    if configured_origin:
+        allowed_origins.add(configured_origin.rstrip("/"))
+
+    @app.after_request
+    def add_cors_headers(response):  # type: ignore[no-untyped-def]
+        origin = request.headers.get("Origin")
+        if origin and origin.rstrip("/") in allowed_origins:
+            response.headers["Access-Control-Allow-Origin"] = origin
+            response.headers["Vary"] = "Origin"
+            response.headers["Access-Control-Allow-Credentials"] = "true"
+            response.headers["Access-Control-Allow-Headers"] = (
+                "Authorization, Content-Type"
+            )
+            response.headers["Access-Control-Allow-Methods"] = (
+                "GET, POST, PUT, PATCH, DELETE, OPTIONS"
+            )
+        return response

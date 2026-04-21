@@ -10,11 +10,11 @@ from sqlalchemy import (
     Date,
     DateTime,
     ForeignKey,
+    JSON,
     Numeric,
     String,
-    Text,
 )
-from sqlalchemy.dialects.postgresql import ARRAY, UUID
+from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from pubia.db import Base
@@ -41,7 +41,7 @@ class Campaign(Base):
     )
     category: Mapped[str] = mapped_column(String(100), nullable=False)
     intent_keywords: Mapped[list[str] | None] = mapped_column(
-        ARRAY(Text), nullable=True
+        JSON, nullable=True
     )
     budget_total: Mapped[Decimal] = mapped_column(
         Numeric(10, 2), default=Decimal("0"), nullable=False

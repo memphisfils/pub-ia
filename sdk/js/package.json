@@ -4,11 +4,30 @@
   "description": "Pub-IA SDK for integrating ad monetization into AI chat applications",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "sideEffects": false,
+  "engines": {
+    "node": ">=18"
+  },
   "scripts": {
     "build": "tsc",
     "prepublishOnly": "npm run build"
   },
   "keywords": ["pub-ia", "advertising", "ai", "chatbot", "sdk"],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/memphisfils/pub-ia.git",
+    "directory": "sdk/js"
+  },
   "license": "MIT",
   "devDependencies": {
     "typescript": "^5.0.0"
