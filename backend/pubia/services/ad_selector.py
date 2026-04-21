@@ -30,7 +30,7 @@ class AdResult:
 def build_native_text(creative: AdCreative) -> str:
     cta = creative.cta_text or "En savoir plus"
     return (
-        f"💡 Sponsorisé · {creative.headline}. "
+        f"Sponsorisé · {creative.headline}. "
         f"{creative.body} "
         f"→ {creative.cta_url}"
     )
